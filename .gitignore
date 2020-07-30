@@ -1,0 +1,11 @@
+*.o
+*.swp
+*.orig
+*.org
+*.xcodeproj
+.DS_Store
+*.deb
+*.tgz
+*-pak
+
+
