@@ -5,16 +5,20 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from selenium import webdriver
-
 import re
+from Bio import SeqIO
+from math import log2
 
-VAXIJEN_TARGET = "virus"
-VAXIJEN_THRESHOLD = 0.5
+VAXIJEN_TARGET = "virus"     # You need to replace the field
+VAXIJEN_THRESHOLD = 0.5      # You need to replace the field
 
-RESULT_FILENAME = "NP_A.txt"
+RESULT_FILENAME = "NP_A.txt" # You need to replace the field
 
-MSA_STAT_FILENAME = "NP_A_aln_aa_stat.csv"
-MSA_STAT_HAS_HEADLINE = True
+
+MSA_FILENAME = "NP_A_aln.fa" # You need to replace the field
+MSA_REF_ID = "CY115151"      # You need to replace the field
+
+AAS=['V','I','L','F','M','W','Y','C','A','T', 'D', 'E','G','P','R','K','H','N','Q','S','-']
 CONSERVATION_THRESHOLD = 1.3
 
 SEP = ";"
@@ -40,16 +44,37 @@ def vaxijen_test(aa_seq):
     browser.close()
     return float(r[0])
 
-def parse_msa_stat_file():
-    in_list = list(open(MSA_STAT_FILENAME))
-    r=[]
-    for i,l in enumerate(in_list):
-        if i > 0 or not MSA_STAT_HAS_HEADLINE:
-            a = l[:-1].split(',')
-            aa = a[1]
-            if aa != '-':
-                r.append([aa, float(a[3]) <= CONSERVATION_THRESHOLD])
-    return r
+def msa_stat():
+    ra=[]
+    rs = ""
+    msa=[]
+    count = 0.0
+    for r in SeqIO.parse(MSA_FILENAME, "fasta"):
+        ids = r.id.split('|')
+        s = str(r.seq)
+        count += 1
+        if ids[0] == MSA_REF_ID:
+            rs = s
+        for i, aa in enumerate(s):
+            if len(msa) < i + 1:
+                msa.append({})
+            d = msa[i]
+            if not aa in d:
+                d[aa] = 0
+            d[aa] += 1
+    for i, aa in enumerate(rs):
+        col = msa[i]
+        aafs=[]
+        s = 0
+        for ar in aas:
+            q = 0
+            if ar in col:
+                q = col[ar] / count
+                s -= q * log2(q)
+            aafs.append(str(q))
+        if aa != '-':
+            ra.append([aa, (2**s) <= CONSERVATION_THRESHOLD])
+    return ra
 
 def pep_consv_count(st, end, consv):
     c = 0
@@ -64,7 +89,7 @@ def pep_consv_count(st, end, consv):
 def f1():
     d = {}
     d1 = {}
-    consv = parse_msa_stat_file()
+    consv = msa_stat()
     vjd = {}
     for l in open(RESULT_FILENAME).readlines():
         ta = l[:-2].split('\t')
@@ -123,7 +148,5 @@ def f1():
                     for a2 in a3:
                         print (str(num) + SEP + a2[0] + SEP +SEP + SEP + SEP + SEP + chSep(a2[5]) + SEP + chSep(a2[6]) + SEP + SEP + chSep(a2[8]) + SEP + chSep(a2[9]))
                         num += 1
-
-
 
 f1()

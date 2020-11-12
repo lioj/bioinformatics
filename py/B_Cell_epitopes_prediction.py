@@ -3,16 +3,22 @@
 from selenium import webdriver
 import re
 import numpy as np
+from Bio import SeqIO
+from math import log2
 
-VAXIJEN_TARGET = "virus"
-VAXIJEN_THRESHOLD = 0.5
+VAXIJEN_TARGET = "virus"                  # You need to replace the field
+VAXIJEN_THRESHOLD = 0.5                   # You need to replace the field
 
-BEPIPRED_RESULT_FILENAME = "BP_HA_B.csv"
+BEPIPRED_RESULT_FILENAME = "BP_HA_B.csv"  # You need to replace the field
 BEPIPRED_RESULT_HAS_HEADLINE = True
-BEPIPRED_THRESHOLD = 0.5
+BEPIPRED_THRESHOLD = 0.5                  # You need to replace the field
 
-MSA_STAT_FILENAME = "HA_B_aln_aa_stat.csv"
-MSA_STAT_HAS_HEADLINE = True
+
+MSA_FILENAME = "HA_B_aln.fa"              # You need to replace the field
+MSA_REF_ID = "CY115151"                   # You need to replace the field
+
+
+AAS=['V','I','L','F','M','W','Y','C','A','T', 'D', 'E','G','P','R','K','H','N','Q','S','-']
 CONSERVATION_THRESHOLD = 1.3
 
 SEP = ","
@@ -43,16 +49,37 @@ def parse_bepipred_file():
             r.append([a[2], float(a[-1])])
     return r
 
-def parse_msa_stat_file():
-    in_list = list(open(MSA_STAT_FILENAME))
-    r=[]
-    for i,l in enumerate(in_list):
-        if i > 0 or not MSA_STAT_HAS_HEADLINE:
-            a = l[:-1].split(SEP)
-            aa = a[1]
-            if aa != '-':
-                r.append([aa, float(a[3]) <= CONSERVATION_THRESHOLD])
-    return r
+def msa_stat():
+    ra=[]
+    rs = ""
+    msa=[]
+    count = 0.0
+    for r in SeqIO.parse(MSA_FILENAME, "fasta"):
+        ids = r.id.split('|')
+        s = str(r.seq)
+        count += 1
+        if ids[0] == MSA_REF_ID:
+            rs = s
+        for i, aa in enumerate(s):
+            if len(msa) < i + 1:
+                msa.append({})
+            d = msa[i]
+            if not aa in d:
+                d[aa] = 0
+            d[aa] += 1
+    for i, aa in enumerate(rs):
+        col = msa[i]
+        aafs=[]
+        s = 0
+        for ar in aas:
+            q = 0
+            if ar in col:
+                q = col[ar] / count
+                s -= q * log2(q)
+            aafs.append(str(q))
+        if aa != '-':
+            ra.append([aa, (2**s) <= CONSERVATION_THRESHOLD])
+    return ra
 
 def predict_simple_eps():
     bp = parse_bepipred_file()
@@ -108,7 +135,7 @@ def bp_median(a, fp, s):
 
 def predict_opt_eps():
     bp = parse_bepipred_file()
-    consv = parse_msa_stat_file()
+    consv = msa_stat()
     eps=[]
     ep = ""
     fp = 0
