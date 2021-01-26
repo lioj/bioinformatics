@@ -66,7 +66,7 @@ def msa_stat():
         col = msa[i]
         aafs=[]
         s = 0
-        for ar in aas:
+        for ar in AAS:
             q = 0
             if ar in col:
                 q = col[ar] / count
