@@ -12,11 +12,22 @@ from math import log2
 VAXIJEN_TARGET = "virus"     # You need to replace the field
 VAXIJEN_THRESHOLD = 0.5      # You need to replace the field
 
-RESULT_FILENAME = "NP_A.txt" # You need to replace the field
+# The File must contains results from IEDB consensus method and must contains fields splited by tab:
+# allele
+# start
+# end
+# length
+# peptide
+# percentile_rank
+# adjusted_rank
+# nn_align_core
+# nn_align_ic50
+# nn_align_rank
+RESULT_FILENAME = "txt/NS5_DR.txt" # You need to replace the field
 
 
-MSA_FILENAME = "NP_A_aln.fa" # You need to replace the field
-MSA_REF_ID = "CY115151"      # You need to replace the field
+MSA_FILENAME = "aln/st/denv1_NS5_aln.fasta" # You need to replace the field
+MSA_REF_ID = "NP_722465.1"      # You need to replace the field; id must splited by '|' charter
 
 AAS=['V','I','L','F','M','W','Y','C','A','T', 'D', 'E','G','P','R','K','H','N','Q','S','-']
 CONSERVATION_THRESHOLD = 1.3
@@ -93,6 +104,8 @@ def f1():
     vjd = {}
     for l in open(RESULT_FILENAME).readlines():
         ta = l[:-2].split('\t')
+        if ta[0] == 'allele' or ta[8] == '-':
+            continue
         seq = ta[4]
         if not seq in d:
             d[seq] = []
